@@ -15,10 +15,16 @@ from collections import deque
 
 from hassapi import Hass
 
+#####################################
+# Configuration Section
+# Load settings from config.ini file
+#####################################
+
 # Read config.ini file
 config_object = ConfigParser()
 config_object.read("config.ini")
 
+# Load configuration sections
 general_Config = config_object["general"]
 mqtt_Config = config_object["mqtt"]
 homeassistant_Config = config_object["homeassistant"]
