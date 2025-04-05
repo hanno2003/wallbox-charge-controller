@@ -19,6 +19,7 @@ from hassapi import Hass
 config_object = ConfigParser()
 config_object.read("config.ini")
 
+# Load configuration sections
 general_Config = config_object["general"]
 mqtt_Config = config_object["mqtt"]
 homeassistant_Config = config_object["homeassistant"]
