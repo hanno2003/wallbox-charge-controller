@@ -1,0 +1,13 @@
+ # docker-compose.yml 
+services: 
+  wallbox_regulator:
+    build:
+      context: /path/to/your/project
+      dockerfile: /path/to/your/project/Dockerfile
+    container_name: 'wallbox-charge-controller'
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - default
+      - volkszaehler

@@ -15,6 +15,11 @@ from collections import deque
 
 from hassapi import Hass
 
+#####################################
+# Configuration Section
+# Load settings from config.ini file
+#####################################
+
 # Read config.ini file
 config_object = ConfigParser()
 config_object.read("config.ini")
