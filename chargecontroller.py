@@ -348,8 +348,8 @@ def loop():
                 logging.info(f"Not enough power left for starting to charge, WP_Out is {str(wp_out)} W")
 
         # Condition 3b: Car is charging; re-evaluate increase of decrease current
-        if (charging_car is True and not current_state == WallBoxMode.off
-                and not current_state == WallBoxMode.max_charge and not current_state == WallBoxMode.min_charge):
+        if (charging_car is True
+                and (current_state == WallBoxMode.pv_charge_charge or current_state == WallBoxMode.pv_charge_batt)):
             # Battery discharging
             if soc_power < 0:
                 setting_ampere -= roundDown((-1) * soc_power / 230)
@@ -357,7 +357,7 @@ def loop():
                 logging.info(
                     f"Decrease Charge Power by {soc_power_str}A to {str(setting_ampere)}A as battery is discharging with {str(soc_power)} W")
 
-            # Still injecting in the network
+            # Still injecting in the network ... increase by 1 Ampere if injection is more then 400W
             elif wp_out < -400.0:
                 setting_ampere += 1
                 logging.info(

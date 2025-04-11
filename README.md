@@ -32,7 +32,7 @@ The Wallbox Charge Controller is a Python application that dynamically adjusts e
 - A Heidelberg Wallbox with MQTT connectivity
 - Home Assistant installation
 - MQTT broker
-- Solar PV system with monitoring
+- Huawei Solar PV system with monitoring
 - Home battery system (optional)
 - Power monitoring system that publishes to MQTT
 
@@ -42,3 +42,9 @@ The Wallbox Charge Controller is a Python application that dynamically adjusts e
    ```bash
    git clone https://github.com/yourusername/wallbox-charge-controller.git
    cd wallbox-charge-controller
+   
+2. Build docker image and run it 
+   ```bash
+   docker compose build -t .
+   docker compose up
+
