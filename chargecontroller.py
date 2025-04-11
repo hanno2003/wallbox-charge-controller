@@ -254,11 +254,13 @@ def loop():
 
         #Max Charge Mode .. ignore everything else
         if current_state == WallBoxMode.max_charge:
+            logging.info("WallBoxMode: Max Charge with 16A")
             set_max_current(16)
             charging_car = True
             time.sleep(30)
             continue
         elif current_state == WallBoxMode.min_charge:
+            logging.info("WallBoxMode: Min Charge with 6A")
             set_max_current(6)
             charging_car = True
             time.sleep(30)
