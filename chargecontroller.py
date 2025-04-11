@@ -329,15 +329,15 @@ def loop():
             if current_state == WallBoxMode.pv_charge_batt and wp_out < -1380.0:
                 charging_car = True
                 setting_ampere = roundDown((-1) * wp_out / 230)
-                logging.info(f"Starting Charging the Car with {str(setting_ampere)} A as WP_Out is {str((-1) * wp_out)} W")
+                logging.info(f"Starting PV Charge (Prefer Battery) the Car with {str(setting_ampere)} A as WP_Out is {str((-1) * wp_out)} W")
                 set_max_current(setting_ampere)
                 time.sleep(20)
                 continue
             elif current_state == WallBoxMode.pv_charge_charge and soc_power > 1380:
                 # WallBoxMode is to prefer charging rather then loading the SoC
                 charging_car = True
-                setting_ampere = roundDown((-1) * soc_power / 230)
-                logging.info(f"Starting Charging the Car with {str(setting_ampere)} A as SoC Power is {str((-1) * soc_power)} W")
+                setting_ampere = roundDown(soc_power / 230)
+                logging.info(f"Starting PV Charge (Prefer Charge) the Car with {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
                 set_max_current(setting_ampere)
                 time.sleep(20)
                 continue
