@@ -307,7 +307,7 @@ def loop():
 
         # Condition 2: Check Battery
         if enough_pv is True and current_state == WallBoxMode.pv_charge_batt:
-            if soc_percent > 99.0:
+            if soc_percent > 98.5:
                 load_battery = False
                 logger.info(f"Battery is at {str(soc_percent)}% ... Fine to charge")
             elif charging_car is True and soc_percent < 95.0:
