@@ -198,6 +198,8 @@ def deque_calc_avg(queue):
         logger.error(f"Fehler bei Durchschnittsberechnung: {str(e)}")
         return 0.0
 
+MIN_CURRENT = 6  # Minimaler Ladestrom in Ampere
+MAX_CURRENT = 16  # Maximaler Ladestrom in Ampere
 
 def roundDown(n):
     result = int("{:.0f}".format(n))
