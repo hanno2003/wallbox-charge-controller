@@ -180,7 +180,8 @@ except ConnectionRefusedError:
 except TimeoutError:
     logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_Config['host']}")
 except Exception as e:
-    logger.error(f"Fehler bei MQTT-Verbindung: {str(e)}")
+    logger.error(f"Unerwarteter Fehler bei MQTT-Verbindung: {str(e)}")
+    raise
 
 client.loop_start()
 
