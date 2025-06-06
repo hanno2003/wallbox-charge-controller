@@ -172,22 +172,30 @@ client.on_connect = on_connect
 
 try:
     client.connect(mqtt_Config["host"],
-                   mqtt_Config["port"], 
-                   30)
-except:
-    logger.info("Could not connect to MQTT Broker")
+                  int(mqtt_Config.get("port", 1883)),
+                  30)
+    logger.info(f"Erfolgreich mit MQTT-Broker {mqtt_Config['host']} verbunden")
+except ConnectionRefusedError:
+    logger.error(f"Verbindung zu MQTT-Broker {mqtt_Config['host']} verweigert")
+except TimeoutError:
+    logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_Config['host']}")
+except Exception as e:
+    logger.error(f"Fehler bei MQTT-Verbindung: {str(e)}")
 
 client.loop_start()
 
-def deque_calc_avg(deque):
-    sum_calc = 0.0
-    for i in deque:
-        sum_calc += i
 
-    if not bool(deque):
-        return 0.0  # Empty queue
+def deque_calc_avg(queue):
+    if not queue or not isinstance(queue, deque):
+        logger.warning("Ungültige Queue für Durchschnittsberechnung")
+        return 0.0
 
-    return sum_calc / len(deque)
+    try:
+        sum_calc = sum(queue)
+        return sum_calc / len(queue)
+    except (TypeError, ZeroDivisionError) as e:
+        logger.error(f"Fehler bei Durchschnittsberechnung: {str(e)}")
+        return 0.0
 
 
 def roundDown(n):
