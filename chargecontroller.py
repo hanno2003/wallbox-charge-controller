@@ -200,10 +200,10 @@ def deque_calc_avg(queue):
 
 def roundDown(n):
     result = int("{:.0f}".format(n))
-    if result < 6:
+    if result < MIN_CURRENT:
         return 0  # Unter Minimalwert - lieber stoppen
-    elif result > 16:
-        return 16  # Maximalen Wert zurückgeben
+    elif result > MAX_CURRENT:
+        return MAX_CURRENT  # Maximalen Wert zurückgeben
     return result
 
 
