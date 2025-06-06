@@ -14,7 +14,7 @@ The Wallbox Charge Controller is a Python application that dynamically adjusts e
   - **Min Charge**: Charge at minimum power (6A) regardless of other factors
   - **PV Charge (Prefer Battery)**: Use excess solar, prioritize battery charging over car charging
   - **PV Charge (Prefer Charge)**: Use excess solar, prioritize car charging over battery charging
-  - **Protect Battery**: Only charge when battery is critically low (≤2%)
+  - **Protect Battery**: Only charge when battery is critically low (≤2%), so just use power from the grid
 
 - **Dynamic regulation**:
   - Smooths power fluctuations using rolling averages

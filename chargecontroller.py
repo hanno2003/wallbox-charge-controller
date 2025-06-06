@@ -245,8 +245,8 @@ def loop():
             logging.info("Vehicle Connected with Charging request, Wallbox doesn't allow charging")
         elif wb_state == 7:
             logging.info("Vehicle Connected with Charging request, Wallbox allows charging")
-        elif wb_state == 9:
-            logging.info("Error state")
+        elif wb_state > 8:
+            logging.info(f"Error state: {wb_state}")
             set_max_current(0)
             charging_car = False
             time.sleep(30)
@@ -272,9 +272,9 @@ def loop():
             time.sleep(30)
             continue
         elif current_state == WallBoxMode.protect_batt:
-            logging.info("WallBoxMode: Protect Battery")
+            logging.info("WallBoxMode: Protect Battery ... only start if battery is off")
             if soc_percent <= 2.0 and abs(soc_power) <= 10:
-                logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... charting")
+                logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... starting")
                 set_max_current(16)
                 charging_car = True
             else:
