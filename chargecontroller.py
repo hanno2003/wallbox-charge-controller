@@ -161,7 +161,7 @@ def on_wallbox_state_change(client, userdata, message):
         logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
     except ValueError:
         logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
-
+        return
 client.message_callback_add("vzlogger/data/chn2/raw", on_new_wp_out)
 client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
 client.message_callback_add("emon/NodeHuawei/storage_state_of_capacity", on_new_soc_percent)
