@@ -156,8 +156,11 @@ def on_wallbox_state_change(client, userdata, message):
     global wb_state
     temp = message.payload.decode("utf-8")
     logger.info(f"MQTT   New Wallbox State: {temp}")
-    wb_state = int(temp)
-    logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
+    try:
+        wb_state = int(temp)
+        logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
+    except ValueError:
+        logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
 
 client.message_callback_add("vzlogger/data/chn2/raw", on_new_wp_out)
 client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
@@ -188,7 +191,12 @@ def deque_calc_avg(deque):
 
 
 def roundDown(n):
-    return int("{:.0f}".format(n))
+    result = int("{:.0f}".format(n))
+    if result < 6:
+        return 0  # Unter Minimalwert - lieber stoppen
+    elif result > 16:
+        return 16  # Maximalen Wert zurückgeben
+    return result
 
 
 ######################################
@@ -239,6 +247,7 @@ def loop():
             continue
         elif wb_state == 4:
             logging.info("Vehicle Connected without Charging request, Wallbox doesn't allow charging")
+            charging_car = False
         elif wb_state == 5:
             logging.info("Vehicle Connected without Charging request, Wallbox allows charging")
         elif wb_state == 6:
