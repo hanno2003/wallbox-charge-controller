@@ -156,9 +156,12 @@ def on_wallbox_state_change(client, userdata, message):
     global wb_state
     temp = message.payload.decode("utf-8")
     logger.info(f"MQTT   New Wallbox State: {temp}")
-    wb_state = int(temp)
-    logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
-
+    try:
+        wb_state = int(temp)
+        logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
+    except ValueError:
+        logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
+        return
 client.message_callback_add("vzlogger/data/chn2/raw", on_new_wp_out)
 client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
 client.message_callback_add("emon/NodeHuawei/storage_state_of_capacity", on_new_soc_percent)
@@ -169,26 +172,42 @@ client.on_connect = on_connect
 
 try:
     client.connect(mqtt_Config["host"],
-                   mqtt_Config["port"], 
-                   30)
-except:
-    logger.info("Could not connect to MQTT Broker")
+                  int(mqtt_Config.get("port", 1883)),
+                  30)
+    logger.info(f"Erfolgreich mit MQTT-Broker {mqtt_Config['host']} verbunden")
+except ConnectionRefusedError:
+    logger.error(f"Verbindung zu MQTT-Broker {mqtt_Config['host']} verweigert")
+except TimeoutError:
+    logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_Config['host']}")
+except Exception as e:
+    logger.error(f"Unerwarteter Fehler bei MQTT-Verbindung: {str(e)}")
+    raise
 
 client.loop_start()
 
-def deque_calc_avg(deque):
-    sum_calc = 0.0
-    for i in deque:
-        sum_calc += i
 
-    if not bool(deque):
-        return 0.0  # Empty queue
+def deque_calc_avg(queue):
+    if not queue or not isinstance(queue, deque):
+        logger.warning("Ungültige Queue für Durchschnittsberechnung")
+        return 0.0
 
-    return sum_calc / len(deque)
+    try:
+        sum_calc = sum(queue)
+        return sum_calc / len(queue)
+    except (TypeError, ZeroDivisionError) as e:
+        logger.error(f"Fehler bei Durchschnittsberechnung: {str(e)}")
+        return 0.0
 
+MIN_CURRENT = 6  # Minimaler Ladestrom in Ampere
+MAX_CURRENT = 16  # Maximaler Ladestrom in Ampere
 
 def roundDown(n):
-    return int("{:.0f}".format(n))
+    result = int("{:.0f}".format(n))
+    if result < MIN_CURRENT:
+        return 0  # Unter Minimalwert - lieber stoppen
+    elif result > MAX_CURRENT:
+        return MAX_CURRENT  # Maximalen Wert zurückgeben
+    return result
 
 
 ######################################
@@ -239,14 +258,15 @@ def loop():
             continue
         elif wb_state == 4:
             logging.info("Vehicle Connected without Charging request, Wallbox doesn't allow charging")
+            charging_car = False
         elif wb_state == 5:
             logging.info("Vehicle Connected without Charging request, Wallbox allows charging")
         elif wb_state == 6:
             logging.info("Vehicle Connected with Charging request, Wallbox doesn't allow charging")
         elif wb_state == 7:
             logging.info("Vehicle Connected with Charging request, Wallbox allows charging")
-        elif wb_state == 9:
-            logging.info("Error state")
+        elif wb_state > 8:
+            logging.info(f"Error state: {wb_state}")
             set_max_current(0)
             charging_car = False
             time.sleep(30)
@@ -272,9 +292,9 @@ def loop():
             time.sleep(30)
             continue
         elif current_state == WallBoxMode.protect_batt:
-            logging.info("WallBoxMode: Protect Battery")
+            logging.info("WallBoxMode: Protect Battery ... only start if battery is off")
             if soc_percent <= 2.0 and abs(soc_power) <= 10:
-                logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... charting")
+                logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... starting")
                 set_max_current(16)
                 charging_car = True
             else:
@@ -348,8 +368,8 @@ def loop():
                 logging.info(f"Not enough power left for starting to charge, WP_Out is {str(wp_out)} W")
 
         # Condition 3b: Car is charging; re-evaluate increase of decrease current
-        if (charging_car is True and not current_state == WallBoxMode.off
-                and not current_state == WallBoxMode.max_charge and not current_state == WallBoxMode.min_charge):
+        if (charging_car is True
+                and (current_state == WallBoxMode.pv_charge_charge or current_state == WallBoxMode.pv_charge_batt)):
             # Battery discharging
             if soc_power < 0:
                 setting_ampere -= roundDown((-1) * soc_power / 230)
@@ -357,7 +377,7 @@ def loop():
                 logging.info(
                     f"Decrease Charge Power by {soc_power_str}A to {str(setting_ampere)}A as battery is discharging with {str(soc_power)} W")
 
-            # Still injecting in the network
+            # Still injecting in the network ... increase by 1 Ampere if injection is more then 400W
             elif wp_out < -400.0:
                 setting_ampere += 1
                 logging.info(
