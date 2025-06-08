@@ -355,7 +355,11 @@ def loop():
                 set_max_current(setting_ampere)
                 time.sleep(20)
                 continue
-            elif current_state == WallBoxMode.pv_charge_charge and soc_power > 1380:
+            else:
+                charging_car = False
+                logging.info(f"Not enough power left for starting to charge (Prefer Battery), WP_Out is {str(wp_out)} W")
+
+            if current_state == WallBoxMode.pv_charge_charge and soc_power > 1380:
                 # WallBoxMode is to prefer charging rather then loading the SoC
                 charging_car = True
                 setting_ampere = roundDown(soc_power / 230)
@@ -365,7 +369,8 @@ def loop():
                 continue
             else:
                 charging_car = False
-                logging.info(f"Not enough power left for starting to charge, WP_Out is {str(wp_out)} W")
+                logging.info(f"Not enough power left for starting to charge (Prefer Charge), SoC Power is {str(soc_power)} W")
+
 
         # Condition 3b: Car is charging; re-evaluate increase of decrease current
         if (charging_car is True
