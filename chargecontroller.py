@@ -112,7 +112,7 @@ def on_connect(client, userdata, flags, rc, properties):
     client.subscribe("homie/#")
 
 
-def set_max_current(new_current):
+def set_current(new_current):
     logging.debug("Adjusting Current to " + str(new_current) + " A")
     client.publish(
         "homie/Heidelberg-Wallbox/wallbox/max_current/set", new_current, 0, True
@@ -155,13 +155,38 @@ wb_state = 0
 def on_wallbox_state_change(client, userdata, message):
     global wb_state
     temp = message.payload.decode("utf-8")
-    logger.info(f"MQTT   New Wallbox State: {temp}")
     try:
+        if wb_state == int(temp):
+            logger.debug(f"MQTT  Wallbox State still: {str(temp)}")
+        else:
+            logger.info(f"MQTT  New Wallbox State: {str(temp)}")
+            log_wallbox_state(int(temp))
+
         wb_state = int(temp)
-        logger.debug(f"MQTT  New Wallbox State: {str(wb_state)}")
     except ValueError:
         logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
         return
+
+def log_wallbox_state(wb_state):
+    if wb_state == 0:
+        logger.info("Wallbox State: Unbekannt")
+    elif wb_state == 1:
+        logger.info("Wallbox State: Nicht verbunden")
+    elif wb_state == 2:
+        logger.info("Wallbox State: Verbunden, aber nicht bereit")
+    elif wb_state == 3:
+        logger.info("Wallbox State: Bereit zum Laden")
+    elif wb_state == 4:
+        logger.info("Wallbox State: Fahrzeug verbunden, aber kein Ladevorgang angefordert")
+    elif wb_state == 5:
+        logger.info("Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert, aber nicht erlaubt")
+    elif wb_state == 6:
+        logger.info("Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert und erlaubt")
+    elif wb_state == 7:
+        logger.info("Wallbox State: Fahrzeug lädt")
+    else:
+        logger.error(f"Unbekannter Wallbox-Status: {wb_state}")
+
 client.message_callback_add("vzlogger/data/chn2/raw", on_new_wp_out)
 client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
 client.message_callback_add("emon/NodeHuawei/storage_state_of_capacity", on_new_soc_percent)
@@ -185,6 +210,18 @@ except Exception as e:
 
 client.loop_start()
 
+def wait_for_wallbox_to_start_charging():
+    # Warte max. 60 Sekunden auf Ladestart (wb_state = 7)
+    start_time = time.time()
+    timeout = 60
+    logging.info("Warte auf Ladestart (wb_state = 7)...")
+    while wb_state != 7 and time.time() - start_time < timeout:
+        time.sleep(2)  # Kurze Wartezeit zwischen Überprüfungen
+
+    if wb_state == 7:
+        logging.info(f"Fahrzeug hat nach {int(time.time() - start_time)} Sekunden mit dem Laden begonnen")
+    else:
+        logging.warning("Timeout erreicht: Fahrzeug hat nicht mit dem Laden begonnen")
 
 def deque_calc_avg(queue):
     if not queue or not isinstance(queue, deque):
@@ -227,7 +264,7 @@ def loop():
     global enough_pv, soc_percent, load_battery, wb_state, ha_state, soc_power
 
     # Start with 0 current
-    set_max_current(0)
+    set_current(0)
 
     while True:
 
@@ -251,23 +288,22 @@ def loop():
 
         if wb_state < 4:
             logging.info("No Vehicle Connected ... skipping")
-            logging.info(f"Current State is {current_state.value}")
-            set_max_current(0)
+            set_current(0)
             charging_car = False
             time.sleep(30)
             continue
         elif wb_state == 4:
-            logging.info("Vehicle Connected without Charging request, Wallbox doesn't allow charging")
+#            logging.info("Vehicle Connected without Charging request, Wallbox doesn't allow charging")
             charging_car = False
-        elif wb_state == 5:
-            logging.info("Vehicle Connected without Charging request, Wallbox allows charging")
-        elif wb_state == 6:
-            logging.info("Vehicle Connected with Charging request, Wallbox doesn't allow charging")
-        elif wb_state == 7:
-            logging.info("Vehicle Connected with Charging request, Wallbox allows charging")
+#        elif wb_state == 5:
+#            logging.info("Vehicle Connected without Charging request, Wallbox allows charging")
+#        elif wb_state == 6:
+#            logging.info("Vehicle Connected with Charging request, Wallbox doesn't allow charging")
+#        elif wb_state == 7:
+#            logging.info("Vehicle Connected with Charging request, Wallbox allows charging")
         elif wb_state > 8:
-            logging.info(f"Error state: {wb_state}")
-            set_max_current(0)
+#            logging.info(f"Error state: {wb_state}")
+            set_current(0)
             charging_car = False
             time.sleep(30)
             continue
@@ -275,19 +311,19 @@ def loop():
         #Max Charge Mode .. ignore everything else
         if current_state == WallBoxMode.max_charge:
             logging.info("WallBoxMode: Max Charge with 16A")
-            set_max_current(16)
+            set_current(16)
             charging_car = True
             time.sleep(30)
             continue
         elif current_state == WallBoxMode.min_charge:
             logging.info("WallBoxMode: Min Charge with 6A")
-            set_max_current(6)
+            set_current(6)
             charging_car = True
             time.sleep(30)
             continue
         elif current_state == WallBoxMode.off:
             logging.info("WallBoxMode: off")
-            set_max_current(0)
+            set_current(0)
             charging_car = False
             time.sleep(30)
             continue
@@ -295,11 +331,11 @@ def loop():
             logging.info("WallBoxMode: Protect Battery ... only start if battery is off")
             if soc_percent <= 2.0 and abs(soc_power) <= 10:
                 logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... starting")
-                set_max_current(16)
+                set_current(16)
                 charging_car = True
             else:
                 logging.debug(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... not starting")
-                set_max_current(0)
+                set_current(0)
                 charging_car = False
             time.sleep(30)
             continue
@@ -321,7 +357,7 @@ def loop():
             logger.info("PV production enough for enable charging")
         else:
             enough_pv = False
-            set_max_current(0)
+            set_current(0)
             logger.info("Not enough PV production for charging ... stop charging")
             logger.info(f"pv_in is {str(pv_in)} W and queue length is {str(len(PV_In_Queue))}")
 
@@ -332,7 +368,7 @@ def loop():
                 logger.info(f"Battery is at {str(soc_percent)}% ... Fine to charge")
             elif charging_car is True and soc_percent < 95.0:
                 logger.info(f"Battery is at {str(soc_percent)}% ... Charging is active, but battery dropped under 95% ... stopping")
-                set_max_current(0)
+                set_current(0)
                 load_battery = True
                 charging_car = False
             else:
@@ -352,8 +388,8 @@ def loop():
                 charging_car = True
                 setting_ampere = roundDown((-1) * wp_out / 230)
                 logging.info(f"Starting PV Charge (Prefer Battery) the Car with {str(setting_ampere)} A as WP_Out is {str((-1) * wp_out)} W")
-                set_max_current(setting_ampere)
-                time.sleep(30)  # Car needs to start charging ... takes some time
+                set_current(setting_ampere)
+                wait_for_wallbox_to_start_charging()
                 continue
             else:
                 charging_car = False
@@ -364,8 +400,8 @@ def loop():
                 charging_car = True
                 setting_ampere = roundDown(soc_power / 230)
                 logging.info(f"Starting PV Charge (Prefer Charge) the Car with {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
-                set_max_current(setting_ampere)
-                time.sleep(30) # Car needs to start charging ... takes some time
+                set_current(setting_ampere)
+                wait_for_wallbox_to_start_charging() # Car needs to start charging ... takes some time
                 continue
             else:
                 charging_car = False
@@ -377,7 +413,7 @@ def loop():
                 and (current_state == WallBoxMode.pv_charge_charge or current_state == WallBoxMode.pv_charge_batt)):
             # Battery discharging
             if soc_power < 0:
-                delta = math.floor(roundDown(soc_power / 230))
+                delta = max(1, abs(math.floor(soc_power / 230)))
                 setting_ampere -= delta
                 logging.info(
                     f"Decrease Charge Power by {str(delta)} A from {str(old_current)} A to {str(setting_ampere)} A as battery is discharging with {str(soc_power)} W")
@@ -389,10 +425,14 @@ def loop():
                     f"Increasing Charge Power by 1A to {str(setting_ampere)}A as WP_Out is {str(wp_out)} W")
 
             elif current_state == WallBoxMode.pv_charge_charge and soc_power > 400:
-                # SoC Injection is more then 1A * 230V = 230W ... increase by 1 Ampere
-                setting_ampere += 1
-                logging.info(
-                    f"Increasing Charge Power by 1A to {str(setting_ampere)}A as SoC Power is {str(soc_power)} W")
+                if old_current == MAX_CURRENT:
+                    logging.info("Already at max current ... not increasing")
+                else:
+                    # SoC Injection is more then 1A * 230V = 230W ... increase by 1 Ampere
+                    delta = abs(math.floor(soc_power / 230))
+                    setting_ampere += delta
+                    logging.info(
+                        f"Increasing Charge Power by {str(delta)} A to {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
 
             # Too much load, if retrieving from network
             elif wp_out > 50:
@@ -413,7 +453,7 @@ def loop():
 
             if old_current != setting_ampere:
                 logging.info(f"Set new Current to {str(setting_ampere)} A ... was {str(old_current)} A before")
-                set_max_current(setting_ampere)
+                set_current(setting_ampere)
 
             else:
                 logging.info(f"Keeping current of {str(setting_ampere)} A")
@@ -428,11 +468,11 @@ try:
     loop()
 except:
     logger.info("------------ Client exited ------------")
-    set_max_current(0) # Setting Current back to 0
+    set_current(0) # Setting Current back to 0
     client.disconnect()
     client.loop_stop()
 finally:
     logger.info("------------ Stopping client ------------")
-    set_max_current(0) # Setting Current back to 0
+    set_current(0) # Setting Current back to 0
     client.disconnect()
     client.loop_stop()
