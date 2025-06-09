@@ -377,7 +377,7 @@ def loop():
                 and (current_state == WallBoxMode.pv_charge_charge or current_state == WallBoxMode.pv_charge_batt)):
             # Battery discharging
             if soc_power < 0:
-                delta = roundDown(abs(soc_power / 230))
+                delta = math.floor(roundDown(soc_power / 230))
                 setting_ampere -= delta
                 logging.info(
                     f"Decrease Charge Power by {str(delta)} A from {str(old_current)} A to {str(setting_ampere)} A as battery is discharging with {str(soc_power)} W")
