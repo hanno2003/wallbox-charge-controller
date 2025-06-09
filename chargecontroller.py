@@ -168,24 +168,21 @@ def on_wallbox_state_change(client, userdata, message):
         return
 
 def log_wallbox_state(wb_state):
-    if wb_state == 0:
-        logger.info("Wallbox State: Unbekannt")
-    elif wb_state == 1:
-        logger.info("Wallbox State: Nicht verbunden")
-    elif wb_state == 2:
-        logger.info("Wallbox State: Verbunden, aber nicht bereit")
-    elif wb_state == 3:
-        logger.info("Wallbox State: Bereit zum Laden")
-    elif wb_state == 4:
-        logger.info("Wallbox State: Fahrzeug verbunden, aber kein Ladevorgang angefordert")
-    elif wb_state == 5:
-        logger.info("Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert, aber nicht erlaubt")
-    elif wb_state == 6:
-        logger.info("Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert und erlaubt")
-    elif wb_state == 7:
-        logger.info("Wallbox State: Fahrzeug lädt")
+    state_messages = {
+        0: "Wallbox State: Unbekannt",
+        1: "Wallbox State: Nicht verbunden",
+        2: "Wallbox State: Verbunden, aber nicht bereit",
+        3: "Wallbox State: Bereit zum Laden",
+        4: "Wallbox State: Fahrzeug verbunden, aber kein Ladevorgang angefordert",
+        5: "Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert, aber nicht erlaubt",
+        6: "Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert und erlaubt",
+        7: "Wallbox State: Fahrzeug lädt",
+    }
+    message = state_messages.get(wb_state, f"Unbekannter Wallbox-Status: {wb_state}")
+    if wb_state in state_messages:
+        logger.info(message)
     else:
-        logger.error(f"Unbekannter Wallbox-Status: {wb_state}")
+        logger.error(message)
 
 client.message_callback_add("vzlogger/data/chn2/raw", on_new_wp_out)
 client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
