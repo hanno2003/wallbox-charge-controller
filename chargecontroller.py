@@ -353,7 +353,7 @@ def loop():
                 setting_ampere = roundDown((-1) * wp_out / 230)
                 logging.info(f"Starting PV Charge (Prefer Battery) the Car with {str(setting_ampere)} A as WP_Out is {str((-1) * wp_out)} W")
                 set_max_current(setting_ampere)
-                time.sleep(20)
+                time.sleep(30)  # Car needs to start charging ... takes some time
                 continue
             else:
                 charging_car = False
@@ -365,7 +365,7 @@ def loop():
                 setting_ampere = roundDown(soc_power / 230)
                 logging.info(f"Starting PV Charge (Prefer Charge) the Car with {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
                 set_max_current(setting_ampere)
-                time.sleep(20)
+                time.sleep(30) # Car needs to start charging ... takes some time
                 continue
             else:
                 charging_car = False
@@ -377,10 +377,10 @@ def loop():
                 and (current_state == WallBoxMode.pv_charge_charge or current_state == WallBoxMode.pv_charge_batt)):
             # Battery discharging
             if soc_power < 0:
-                setting_ampere -= roundDown((-1) * soc_power / 230)
-                soc_power_str = str(roundDown((-1) * soc_power / 230))
+                delta = roundDown(abs(soc_power / 230))
+                setting_ampere -= delta
                 logging.info(
-                    f"Decrease Charge Power by {soc_power_str}A to {str(setting_ampere)}A as battery is discharging with {str(soc_power)} W")
+                    f"Decrease Charge Power by {str(delta)} A from {str(old_current)} A to {str(setting_ampere)} A as battery is discharging with {str(soc_power)} W")
 
             # Still injecting in the network ... increase by 1 Ampere if injection is more then 400W
             elif wp_out < -400.0:
