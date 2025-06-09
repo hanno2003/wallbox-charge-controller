@@ -293,16 +293,8 @@ def loop():
             time.sleep(30)
             continue
         elif wb_state == 4:
-#            logging.info("Vehicle Connected without Charging request, Wallbox doesn't allow charging")
             charging_car = False
-#        elif wb_state == 5:
-#            logging.info("Vehicle Connected without Charging request, Wallbox allows charging")
-#        elif wb_state == 6:
-#            logging.info("Vehicle Connected with Charging request, Wallbox doesn't allow charging")
-#        elif wb_state == 7:
-#            logging.info("Vehicle Connected with Charging request, Wallbox allows charging")
         elif wb_state > 8:
-#            logging.info(f"Error state: {wb_state}")
             set_current(0)
             charging_car = False
             time.sleep(30)
