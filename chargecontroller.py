@@ -393,7 +393,7 @@ def loop():
                 wait_for_wallbox_to_start_charging() # Car needs to start charging ... takes some time
                 continue
             elif current_state == WallBoxMode.pv_charge_charge and soc_percent == 100.0:
-                logger.info("SoC is 100% ... switching to Prefer Battery")
+                logging.info("SoC is 100% ... switching to Prefer Battery")
                 hass.select_option('input_select.wallbox_charge_mode', WallBoxMode.pv_charge_batt.value)
             else:
                 charging_car = False
