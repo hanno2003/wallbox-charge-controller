@@ -394,7 +394,7 @@ def loop():
                 continue
             elif current_state == WallBoxMode.pv_charge_charge and soc_percent == 100.0:
                 logger.info("SoC is 100% ... switching to Prefer Battery")
-                hass.set_value("input_select.wallbox_charge_mode", WallBoxMode.pv_charge_batt.value)
+                hass.select_option('input_select.wallbox_charge_mode', WallBoxMode.pv_charge_batt.value)
             else:
                 charging_car = False
                 logging.info(f"Not enough power left for starting to charge (Prefer Charge), SoC Power is {str(soc_power)} W")
