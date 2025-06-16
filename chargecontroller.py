@@ -34,26 +34,6 @@ homeassistant_host = os.getenv('HASS_HOST', 'http://homeassistant:8123')
 homeassistant_token = os.getenv('HASS_TOKEN', '')
 
 ######################################
-#   MQTT Config
-######################################
-
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-
-# HomeAssistant Client
-hass = Hass(hassurl=homeassistant_host,
-            token=homeassistant_token)
-
-ha_state = hass.get_state("input_select.wallbox_charge_mode")
-
-class WallBoxMode(Enum):
-    off ='Aus'
-    max_charge = 'Max Charge'
-    pv_charge_batt = 'PV Charge (Prefer Battery)'
-    pv_charge_charge = 'PV Charge (Prefer Charge)'
-    protect_batt = 'Protect Battery'
-    min_charge = 'Min Charge'
-
-######################################
 #   Logging
 ######################################
 
@@ -100,6 +80,27 @@ rootlogger.addHandler(consoleHandler)
 
 # get a logger for my script
 logger = logging.getLogger(__name__)
+
+######################################
+#   MQTT Config
+######################################
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+logger.info(f"Connecting to {homeassistant_host} with token {homeassistant_token[:3]}...{homeassistant_token[-3:] if len(homeassistant_token) > 6 else ''}")
+# HomeAssistant Client
+hass = Hass(hassurl=homeassistant_host,
+            token=homeassistant_token)
+
+ha_state = hass.get_state("input_select.wallbox_charge_mode")
+
+class WallBoxMode(Enum):
+    off ='Aus'
+    max_charge = 'Max Charge'
+    pv_charge_batt = 'PV Charge (Prefer Battery)'
+    pv_charge_charge = 'PV Charge (Prefer Charge)'
+    protect_batt = 'Protect Battery'
+    min_charge = 'Min Charge'
 
 def get_time():
     now = (datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
