@@ -39,7 +39,7 @@ homeassistant_token = os.getenv('HASS_TOKEN', '')
 
 try:
     os.makedirs(log_path)
-    print("Logdir " + log_path + " created")
+    print("Log directory " + log_path + " created")
 
 except FileExistsError:
     pass
@@ -95,7 +95,7 @@ hass = Hass(hassurl=homeassistant_host,
 ha_state = hass.get_state("input_select.wallbox_charge_mode")
 
 class WallBoxMode(Enum):
-    off ='Aus'
+    off ='Off'
     max_charge = 'Max Charge'
     pv_charge_batt = 'PV Charge (Prefer Battery)'
     pv_charge_charge = 'PV Charge (Prefer Charge)'
@@ -130,7 +130,7 @@ def on_new_wp_out(client, userdata, message):
     global WP_Out_Power
     WP_Out_Power = float(message.payload.decode("utf-8"))
     WP_Out_Power_Queue.append(WP_Out_Power)
-    logger.debug("MQTT  New WP_Out received: " + str(WP_Out_Power))
+    logger.debug("MQTT: New WP_Out received: " + str(WP_Out_Power))
 
 PV_In_Power = 0.0
 PV_In_Queue = deque(maxlen=10)
@@ -139,21 +139,21 @@ def on_new_pv_in(client, userdata, message):
     global PV_In_Power
     PV_In_Power = float(message.payload.decode("utf-8"))
     PV_In_Queue.append(PV_In_Power)
-    logger.debug("MQTT  New PV Power received: " + str(PV_In_Power))
+    logger.debug("MQTT: New PV Power received: " + str(PV_In_Power))
 
 soc_percent = 0.0
 
 def on_new_soc_percent(client, userdata, message):
     global soc_percent
     soc_percent = float(message.payload.decode("utf-8"))
-    logger.debug("MQTT  New SoC/Battery Percent received: " + str(soc_percent))
+    logger.debug("MQTT: New SoC/Battery Percent received: " + str(soc_percent))
 
 soc_power = 0.0
 
 def on_new_soc_power(client, userdata, message):
     global soc_power
     soc_power = float(message.payload.decode("utf-8"))
-    logger.debug("MQTT  New SoC/Battery Power received: " + str(soc_power))
+    logger.debug("MQTT: New SoC/Battery Power received: " + str(soc_power))
 
 wb_state = 0
 
@@ -162,14 +162,14 @@ def on_wallbox_state_change(client, userdata, message):
     temp = message.payload.decode("utf-8")
     try:
         if wb_state == int(temp):
-            logger.debug(f"MQTT  Wallbox State still: {str(temp)}")
+            logger.debug(f"MQTT: Wallbox state still: {str(temp)}")
         else:
-            logger.info(f"MQTT  New Wallbox State: {str(temp)}")
+            logger.info(f"MQTT: New wallbox state: {str(temp)}")
             log_wallbox_state(int(temp))
 
         wb_state = int(temp)
     except ValueError:
-        logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
+        logger.error(f"Could not convert wallbox state: {temp}")
         return
 
 wb_consumption = 0.0
@@ -179,23 +179,23 @@ def on_wallbox_consumption_change(client, userdata, message):
     temp = message.payload.decode("utf-8")
     try:
         wb_consumption = float(temp)
-        logger.info(f"MQTT  New Wallbox Consumption: {str(temp)}")
+        logger.info(f"MQTT: New wallbox consumption: {str(temp)}")
     except ValueError:
-        logger.error(f"Konnte Wallbox Consumption nicht konvertieren: {temp}")
+        logger.error(f"Could not convert wallbox consumption: {temp}")
         return
 
 def log_wallbox_state(wb_state):
     state_messages = {
-        0: "Wallbox State: Unbekannt",
-        1: "Wallbox State: Nicht verbunden",
-        2: "Wallbox State: Verbunden, aber nicht bereit",
-        3: "Wallbox State: Bereit zum Laden",
-        4: "Wallbox State: Fahrzeug verbunden, aber kein Ladevorgang angefordert",
-        5: "Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert, aber nicht erlaubt",
-        6: "Wallbox State: Fahrzeug verbunden, Ladevorgang angefordert und erlaubt",
-        7: "Wallbox State: Fahrzeug lädt",
+        0: "Wallbox state: Unknown",
+        1: "Wallbox state: Not connected",
+        2: "Wallbox state: Connected but not ready",
+        3: "Wallbox state: Ready for charging",
+        4: "Wallbox state: Vehicle connected, no charging requested",
+        5: "Wallbox state: Vehicle connected, charging requested but not permitted",
+        6: "Wallbox state: Vehicle connected, charging requested and permitted",
+        7: "Wallbox state: Vehicle charging",
     }
-    message = state_messages.get(wb_state, f"Unbekannter Wallbox-Status: {wb_state}")
+    message = state_messages.get(wb_state, f"Unknown wallbox state: {wb_state}")
     if wb_state in state_messages:
         logger.info(message)
     else:
@@ -215,13 +215,13 @@ try:
     client.connect(mqtt_host,
                   int(mqtt_port),
                   30)
-    logger.info(f"Erfolgreich mit MQTT-Broker {mqtt_host}:{mqtt_port} verbunden")
+    logger.info(f"Successfully connected to MQTT broker {mqtt_host}:{mqtt_port}")
 except ConnectionRefusedError:
-    logger.error(f"Verbindung zu MQTT-Broker {mqtt_host}:{mqtt_port} verweigert")
+    logger.error(f"Connection to MQTT broker {mqtt_host}:{mqtt_port} refused")
 except TimeoutError:
-    logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_host}:{mqtt_port}")
+    logger.error(f"Connection timeout to MQTT broker {mqtt_host}:{mqtt_port}")
 except Exception as e:
-    logger.error(f"Unerwarteter Fehler bei MQTT-Verbindung: {str(e)}")
+    logger.error(f"Unexpected error in MQTT connection: {str(e)}")
     raise
 
 client.loop_start()
@@ -229,46 +229,46 @@ client.loop_start()
 def wait_for_wallbox_to_change_consumption(old_consumption):
     start_time = time.time()
     timeout = 60
-    logger.info("Warte auf Anpassung der Consumption ...")
+    logger.info("Waiting for consumption adjustment...")
     while wb_consumption == old_consumption and time.time() - start_time < timeout:
-        time.sleep(2)  # Kurze Wartezeit zwischen Überprüfungen
+        time.sleep(2)  # Short wait between checks
 
-    logger.info(f"Consumption hat sich nach {int(time.time() - start_time)} Sekunden angepasst (von {old_consumption} auf {wb_consumption})")
+    logger.info(f"Consumption adjusted after {int(time.time() - start_time)} seconds (from {old_consumption} to {wb_consumption})")
 
 def wait_for_wallbox_to_start_charging():
-    # Warte max. 60 Sekunden auf Ladestart (wb_state = 7)
+    # Wait max 60 seconds for charging to start (wb_state = 7)
     start_time = time.time()
     timeout = 60
-    logger.info("Warte auf Ladestart (wb_state = 7)...")
+    logger.info("Waiting for charging to start (wb_state = 7)...")
     while wb_state != 7 and time.time() - start_time < timeout:
-        time.sleep(2)  # Kurze Wartezeit zwischen Überprüfungen
+        time.sleep(2)  # Short wait between checks
 
     if wb_state == 7:
-        logger.info(f"Fahrzeug hat nach {int(time.time() - start_time)} Sekunden mit dem Laden begonnen")
+        logger.info(f"Vehicle started charging after {int(time.time() - start_time)} seconds")
     else:
-        logger.warning("Timeout erreicht: Fahrzeug hat nicht mit dem Laden begonnen")
+        logger.warning("Timeout reached: Vehicle did not start charging")
 
 def deque_calc_avg(queue):
     if not queue or not isinstance(queue, deque):
-        logger.warning("Ungültige Queue für Durchschnittsberechnung")
+        logger.warning("Invalid queue for average calculation")
         return 0.0
 
     try:
         sum_calc = sum(queue)
         return sum_calc / len(queue)
     except (TypeError, ZeroDivisionError) as e:
-        logger.error(f"Fehler bei Durchschnittsberechnung: {str(e)}")
+        logger.error(f"Error in average calculation: {str(e)}")
         return 0.0
 
-MIN_CURRENT = 6  # Minimaler Ladestrom in Ampere
-MAX_CURRENT = 16  # Maximaler Ladestrom in Ampere
+MIN_CURRENT = 6  # Minimum charging current in amperes
+MAX_CURRENT = 16  # Maximum charging current in amperes
 
 def roundDown(n):
     result = int("{:.0f}".format(n))
     if result < MIN_CURRENT:
-        return 0  # Unter Minimalwert - lieber stoppen
+        return 0  # Below minimum value - better to stop
     elif result > MAX_CURRENT:
-        return MAX_CURRENT  # Maximalen Wert zurückgeben
+        return MAX_CURRENT  # Return maximum value
     return result
 
 
@@ -371,32 +371,32 @@ def loop():
             continue
         elif (len(PV_In_Queue) > 3 and pv_in > 1400.0):  # Getting a new PV Input Value every 10 seconds
             enough_pv = True
-            logger.info("PV production enough for enable charging")
+            logger.info("PV production sufficient to enable charging")
         else:
             enough_pv = False
             set_current(0)
-            logger.info("Not enough PV production for charging ... stop charging")
-            logger.info(f"pv_in is {str(pv_in)} W and queue length is {str(len(PV_In_Queue))}")
+            logger.info("Insufficient PV production for charging - stopping")
+            logger.info(f"PV input is {str(pv_in)} W and queue length is {str(len(PV_In_Queue))}")
 
         # Condition 2: Check Battery
         if enough_pv is True and current_state == WallBoxMode.pv_charge_batt:
             if soc_percent > 98.5:
                 load_battery = False
-                logger.info(f"Battery is at {str(soc_percent)}% ... Fine to charge")
+                logger.info(f"Battery at {str(soc_percent)}% - ready to charge vehicle")
             elif charging_car is True and soc_percent < 95.0:
-                logger.info(f"Battery is at {str(soc_percent)}% ... Charging is active, but battery dropped under 95% ... stopping")
+                logger.info(f"Battery at {str(soc_percent)}% - charging active but battery dropped below 95% - stopping")
                 set_current(0)
                 load_battery = True
                 charging_car = False
             else:
                 if soc_power > 0:
-                    logger.info(f"Battery is at {str(soc_percent)}% ... Prefer charging battery then charge car, not starting to charge ... Battery injection is {str(soc_power)}")
+                    logger.info(f"Battery at {str(soc_percent)}% - prioritizing battery over vehicle charging - battery injection is {str(soc_power)}")
                 else:
-                    logger.info(f"Battery is at {str(soc_percent)}% ... Prefer charging battery then charge car, not starting to charge ... Battery discharging is {str(soc_power)}")
+                    logger.info(f"Battery at {str(soc_percent)}% - prioritizing battery over vehicle charging - battery discharging is {str(soc_power)}")
                 load_battery = True
         elif current_state == WallBoxMode.pv_charge_charge:
             load_battery = False
-            logger.info(f"Battery is at {str(soc_percent)} % ... but ignore as WallBoxMode prefers charging")
+            logger.info(f"Battery at {str(soc_percent)}% - ignoring as mode prioritizes vehicle charging")
 
         # Condition 3a: Check network injection resp. SoC injection to start charging, if not yet charging
         wp_out = deque_calc_avg(WP_Out_Power_Queue)
@@ -404,28 +404,28 @@ def loop():
             if current_state == WallBoxMode.pv_charge_batt and wp_out < -1380.0:
                 charging_car = True
                 setting_ampere = roundDown((-1) * wp_out / 230)
-                logger.info(f"Starting PV Charge (Prefer Battery) the Car with {str(setting_ampere)} A as WP_Out is {str((-1) * wp_out)} W")
+                logger.info(f"Starting PV charging (Prefer Battery) at {str(setting_ampere)} A (WP_Out: {str((-1) * wp_out)} W)")
                 set_current(setting_ampere)
                 wait_for_wallbox_to_start_charging()
                 continue
             else:
                 charging_car = False
-                logger.info(f"Not enough power left for starting to charge (Prefer Battery), WP_Out is {str(wp_out)} W")
+                logger.info(f"Insufficient power for charging (Prefer Battery) - WP_Out is {str(wp_out)} W")
 
             if current_state == WallBoxMode.pv_charge_charge and soc_power > 1380:
-                # WallBoxMode is to prefer charging rather then loading the SoC
+                # WallBoxMode is to prefer charging rather than loading the battery
                 charging_car = True
                 setting_ampere = roundDown(soc_power / 230)
-                logger.info(f"Starting PV Charge (Prefer Charge) the Car with {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
+                logger.info(f"Starting PV charging (Prefer Charge) at {str(setting_ampere)} A (SoC Power: {str(soc_power)} W)")
                 set_current(setting_ampere)
                 wait_for_wallbox_to_start_charging() # Car needs to start charging ... takes some time
                 continue
             elif current_state == WallBoxMode.pv_charge_charge and soc_percent == 100.0:
-                logging.info("SoC is 100% ... switching to Prefer Battery")
+                logging.info("SoC at 100% - switching to Prefer Battery mode")
                 hass.select_option('input_select.wallbox_charge_mode', WallBoxMode.pv_charge_batt.value)
             else:
                 charging_car = False
-                logger.info(f"Not enough power left for starting to charge (Prefer Charge), SoC Power is {str(soc_power)} W")
+                logger.info(f"Insufficient power for charging (Prefer Charge) - SoC Power is {str(soc_power)} W")
 
 
         # Condition 3b: Car is charging; re-evaluate increase of decrease current
@@ -436,48 +436,48 @@ def loop():
                 delta = max(1, abs(math.floor(soc_power / 230)))
                 setting_ampere -= delta
                 logger.info(
-                    f"Decrease Charge Power by {str(delta)} A from {str(old_current)} A to {str(setting_ampere)} A as battery is discharging with {str(soc_power)} W")
+                    f"Decreasing charge power by {str(delta)} A from {str(old_current)} A to {str(setting_ampere)} A (battery discharging at {str(soc_power)} W)")
 
-            # Still injecting in the network ... increase by 1 Ampere if injection is more then 400W
+            # Still injecting in the network ... increase by 1 Ampere if injection is more than 400W
             elif wp_out < -400.0:
                 setting_ampere += 1
                 logger.info(
-                    f"Increasing Charge Power by 1A to {str(setting_ampere)}A as WP_Out is {str(wp_out)} W")
+                    f"Increasing charge power by 1A to {str(setting_ampere)}A (WP_Out: {str(wp_out)} W)")
 
             elif current_state == WallBoxMode.pv_charge_charge and soc_power > 400:
                 if old_current == MAX_CURRENT:
-                    logger.info("Already at max current ... not increasing")
+                    logger.info("Already at maximum current - not increasing")
                 else:
-                    # SoC Injection is more then 1A * 230V = 230W ... increase by 1 Ampere
+                    # SoC Injection is more than 1A * 230V = 230W ... increase by 1 Ampere
                     delta = abs(math.floor(soc_power / 230))
                     setting_ampere += delta
                     logger.info(
-                        f"Increasing Charge Power by {str(delta)} A to {str(setting_ampere)} A as SoC Power is {str(soc_power)} W")
+                        f"Increasing charge power by {str(delta)} A to {str(setting_ampere)} A (SoC Power: {str(soc_power)} W)")
 
-            # Too much load, if retrieving from network
+            # Too much load if retrieving from network
             elif wp_out > 50:
                 setting_ampere -= max(1, math.ceil(roundDown(wp_out / 230)))
                 wp_out_str = str(max(1, math.ceil(roundDown(wp_out / 230))))
                 logger.info(
-                    f"Decrease Charge Power by {wp_out_str}A to {str(setting_ampere)}A as WP_Out is {str(wp_out)} W")
+                    f"Decreasing charge power by {wp_out_str}A to {str(setting_ampere)}A (WP_Out: {str(wp_out)} W)")
 
             # Fix Charging Current
             if setting_ampere < 6:
-                logger.info("under minimum charging load ... stop charging")
+                logger.info("Below minimum charging level - stopping charging")
                 setting_ampere = 0
                 charging_car = False
 
             if setting_ampere > 16:
-                logger.info("Reached max Loading Power ... resetting to 16 A")
+                logger.info("Reached maximum charging power - limiting to 16A")
                 setting_ampere = 16
 
             if old_current != setting_ampere:
-                logger.info(f"Set new Current to {str(setting_ampere)} A ... was {str(old_current)} A before")
+                logger.info(f"Setting new current to {str(setting_ampere)} A (was {str(old_current)} A)")
                 set_current(setting_ampere)
                 wait_for_wallbox_to_change_consumption(wb_consumption)
 
             else:
-                logger.info(f"Keeping current of {str(setting_ampere)} A")
+                logger.info(f"Maintaining current at {str(setting_ampere)} A")
 
         # Execute every 10 seconds
         time.sleep(20)
