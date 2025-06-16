@@ -167,6 +167,18 @@ def on_wallbox_state_change(client, userdata, message):
         logger.error(f"Konnte Wallbox-Status nicht konvertieren: {temp}")
         return
 
+wb_consumption = 0.0
+
+def on_wallbox_consumption_change(client, userdata, message):
+    global wb_consumption
+    temp = message.payload.decode("utf-8")
+    try:
+        wb_consumption = float(temp)
+        logger.info(f"MQTT  New Wallbox Consumption: {str(temp)}")
+    except ValueError:
+        logger.error(f"Konnte Wallbox Consumption nicht konvertieren: {temp}")
+        return
+
 def log_wallbox_state(wb_state):
     state_messages = {
         0: "Wallbox State: Unbekannt",
@@ -189,6 +201,8 @@ client.message_callback_add("emon/NodeHuawei/input_power", on_new_pv_in)
 client.message_callback_add("emon/NodeHuawei/storage_state_of_capacity", on_new_soc_percent)
 client.message_callback_add("emon/NodeHuawei/storage_charge_discharge_power", on_new_soc_power)
 client.message_callback_add("homie/Heidelberg-Wallbox/$state", on_wallbox_state_change)
+client.message_callback_add("homie/Heidelberg-Wallbox/wallbox/akt_verbrauch", on_wallbox_consumption_change)
+
 
 client.on_connect = on_connect
 
@@ -206,6 +220,15 @@ except Exception as e:
     raise
 
 client.loop_start()
+
+def wait_for_wallbox_to_change_consumption(old_consumption):
+    start_time = time.time()
+    timeout = 60
+    logging.info("Warte auf Anpassung der Consumption ...")
+    while wb_consumption != old_consumption and time.time() - start_time < timeout:
+        time.sleep(2)  # Kurze Wartezeit zwischen Überprüfungen
+
+    logging.info(f"Consumption hat sich nach {int(time.time() - start_time)} Sekunden angepasst (von {old_consumption} auf {wb_consumption})")
 
 def wait_for_wallbox_to_start_charging():
     # Warte max. 60 Sekunden auf Ladestart (wb_state = 7)
