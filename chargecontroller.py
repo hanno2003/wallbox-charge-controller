@@ -19,15 +19,19 @@ from hassapi import Hass
 # Configuration Section
 # Load settings from config.ini file
 #####################################
+import os
+# load config from os
+from load_dotenv import load_dotenv
+load_dotenv()
 
-# Read config.ini file
-config_object = ConfigParser()
-config_object.read("config.ini")
+log_path = os.getenv('LOG_DIR', 'logs/')
+log_filename = os.getenv('LOG_FILENAME', 'chargecontroller.log')
 
-# Load configuration sections
-general_Config = config_object["general"]
-mqtt_Config = config_object["mqtt"]
-homeassistant_Config = config_object["homeassistant"]
+mqtt_host = os.getenv('MQTT_HOST', 'localhost')
+mqtt_port = os.getenv('MQTT_PORT', '1883')
+
+homeassistant_host = os.getenv('HASS_HOST', 'http://homeassistant:8123')
+homeassistant_token = os.getenv('HASS_TOKEN', '')
 
 ######################################
 #   MQTT Config
@@ -36,8 +40,8 @@ homeassistant_Config = config_object["homeassistant"]
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 # HomeAssistant Client
-hass = Hass(hassurl=homeassistant_Config["host"],
-            token=homeassistant_Config["token"])
+hass = Hass(hassurl=homeassistant_host,
+            token=homeassistant_token)
 
 ha_state = hass.get_state("input_select.wallbox_charge_mode")
 
@@ -54,8 +58,8 @@ class WallBoxMode(Enum):
 ######################################
 
 try:
-    os.makedirs(general_Config["log_path"])
-    print("Logdir " + general_Config["log_path"] + " created")
+    os.makedirs(log_path)
+    print("Logdir " + log_path + " created")
 
 except FileExistsError:
     pass
@@ -79,7 +83,7 @@ rootlogger.setLevel(logging.DEBUG)
 
 # setup logging to file, rotating at midnight
 filelog = logging.handlers.TimedRotatingFileHandler(
-    general_Config["log_path"] + general_Config["log_filename"],
+    log_path + log_filename,
     when="midnight",
     interval=1,
 )
@@ -207,14 +211,14 @@ client.message_callback_add("homie/Heidelberg-Wallbox/wallbox/akt_verbrauch", on
 client.on_connect = on_connect
 
 try:
-    client.connect(mqtt_Config["host"],
-                  int(mqtt_Config.get("port", 1883)),
+    client.connect(mqtt_host,
+                  int(mqtt_port),
                   30)
-    logger.info(f"Erfolgreich mit MQTT-Broker {mqtt_Config['host']} verbunden")
+    logger.info(f"Erfolgreich mit MQTT-Broker {mqtt_host}:{mqtt_port} verbunden")
 except ConnectionRefusedError:
-    logger.error(f"Verbindung zu MQTT-Broker {mqtt_Config['host']} verweigert")
+    logger.error(f"Verbindung zu MQTT-Broker {mqtt_host}:{mqtt_port} verweigert")
 except TimeoutError:
-    logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_Config['host']}")
+    logger.error(f"Zeitüberschreitung bei Verbindung zu MQTT-Broker {mqtt_host}:{mqtt_port}")
 except Exception as e:
     logger.error(f"Unerwarteter Fehler bei MQTT-Verbindung: {str(e)}")
     raise
