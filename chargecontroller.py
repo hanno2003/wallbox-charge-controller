@@ -229,7 +229,7 @@ def wait_for_wallbox_to_change_consumption(old_consumption):
     start_time = time.time()
     timeout = 60
     logger.info("Warte auf Anpassung der Consumption ...")
-    while wb_consumption != old_consumption and time.time() - start_time < timeout:
+    while wb_consumption == old_consumption and time.time() - start_time < timeout:
         time.sleep(2)  # Kurze Wartezeit zwischen Überprüfungen
 
     logger.info(f"Consumption hat sich nach {int(time.time() - start_time)} Sekunden angepasst (von {old_consumption} auf {wb_consumption})")
@@ -470,6 +470,7 @@ def loop():
             if old_current != setting_ampere:
                 logger.info(f"Set new Current to {str(setting_ampere)} A ... was {str(old_current)} A before")
                 set_current(setting_ampere)
+                wait_for_wallbox_to_change_consumption(wb_consumption)
 
             else:
                 logger.info(f"Keeping current of {str(setting_ampere)} A")
