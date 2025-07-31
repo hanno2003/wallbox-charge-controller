@@ -346,7 +346,7 @@ def loop():
             continue
         elif current_state == WallBoxMode.protect_batt:
             logger.info("WallBoxMode: Protect Battery ... only start if battery is off")
-            if soc_percent <= 2.0 and abs(soc_power) <= 10:
+            if soc_percent <= 1.0:
                 logger.info(f"Soc Percent is {str(soc_percent)} and SocPower is {str(soc_power)} ... starting")
                 set_current(16)
                 charging_car = True
